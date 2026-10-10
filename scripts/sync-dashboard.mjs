@@ -1,0 +1,13 @@
+import fs from 'node:fs/promises';
+const htmlFile=new URL('../local/index.html',import.meta.url);
+let html=await fs.readFile(htmlFile,'utf8');
+const cloud=await fs.readFile(new URL('../local/word-cloud.js',import.meta.url),'utf8');
+const marker="const KEY='market-pulse-rss-v1';";
+const begin=html.indexOf(marker)+marker.length,end=html.indexOf('const safeURL=s=>');
+if(begin<marker.length||end<begin)throw new Error('Dashboard script markers missing');
+html=html.slice(0,begin)+'\n'+cloud+'\n'+html.slice(end);
+new Function(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
+await fs.writeFile(htmlFile,html);
+const hosted=html.replace('本機直接讀取原始 RSS 全部項目，沒有 10 則上限。RSS 僅提供近期新聞，已載入文章會在這個瀏覽器累積保存。','線上讀取原始 RSS 全部項目，沒有 10 則上限。網站保留近 7 天取得的 RSS 快照，已載入文章也會在這個瀏覽器累積保存。');
+await fs.writeFile(new URL('../lib/dashboard-html.ts',import.meta.url),'export const dashboardHTML = '+JSON.stringify(hosted)+';\n');
+console.log('Local dashboard and hosted source synchronized; JavaScript syntax checked.');
